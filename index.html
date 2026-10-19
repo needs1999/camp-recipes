@@ -274,9 +274,9 @@ function render(){
     </details>
     <a class="watch" href="${v.url}" target="_blank" rel="noopener">YouTubeで見る ↗</a>
   </article>`;
-  const g=$('#grid');g.innerHTML=list.slice(0,shown).map(card).join('');
+  const grid=$('#grid');grid.innerHTML=list.slice(0,shown).map(card).join('');
   const more=$('#more');more.hidden=shown>=list.length;more.textContent='さらに表示（残り'+(list.length-shown)+'本）';
-  more.onclick=()=>{const next=list.slice(shown,shown+PAGE);g.insertAdjacentHTML('beforeend',next.map(card).join(''));shown+=next.length;more.hidden=shown>=list.length;more.textContent='さらに表示（残り'+(list.length-shown)+'本）'};
+  more.onclick=()=>{const next=list.slice(shown,shown+PAGE);grid.insertAdjacentHTML('beforeend',next.map(card).join(''));shown+=next.length;more.hidden=shown>=list.length;more.textContent='さらに表示（残り'+(list.length-shown)+'本）'};
 }
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 ['#q','#people','#dish','#gear','#diff','#maxcost'].forEach(s=>$(s).addEventListener('input',render));
