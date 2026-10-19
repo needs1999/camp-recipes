@@ -80,6 +80,8 @@ input[type=range]{accent-color:var(--ember);flex:1 1 160px;min-width:0}
 .recipe ol li{margin-bottom:3px}
 .recipe .tip{font-size:12px;color:var(--muted);margin:6px 0 0;padding:6px 8px;background:var(--ember-soft);border-radius:6px}
 .recipe .warn{font-size:11px;color:var(--muted);margin:6px 0 0}
+.pill.user{background:var(--ok);color:#fff;border-color:transparent}
+.del{font:inherit;font-size:12px;background:none;border:1px solid var(--line);border-radius:4px;color:var(--muted);padding:2px 8px;cursor:pointer;margin-left:auto}
 .watch{font-size:12px;color:var(--ember);text-decoration:none;font-weight:700}
 .empty{color:var(--muted);padding:32px 0;text-align:center}
 /* course */
@@ -135,6 +137,7 @@ footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid va
 <div class="tabs" role="tablist">
   <button role="tab" id="tab-list" aria-selected="true" aria-controls="p-list">動画を探す</button>
   <button role="tab" id="tab-course" aria-selected="false" aria-controls="p-course">コースを組む</button>
+  <button role="tab" id="tab-add" aria-selected="false" aria-controls="p-add">追加</button>
 </div>
 
 <section id="p-list" class="panel" role="tabpanel">
@@ -190,8 +193,52 @@ footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid va
   <div class="results" id="results"></div>
 </section>
 
+<section id="p-add" class="panel" role="tabpanel" hidden>
+  <form class="course-form" id="aform" autocomplete="off">
+    <h2>動画・レシピを追加</h2>
+    <p class="note">素材・料理の種類・器具は、一覧にないものを入力するとそのまま新しい分類として登録されます。保存先はこの端末のブラウザです（他の端末には同期されません。「書き出し」でJSONをコピーして台帳本体に取り込めます）。</p>
+    <div class="row"><label for="a-url">YouTube URL</label><input type="url" id="a-url" placeholder="https://www.youtube.com/watch?v=…" style="flex:1 1 240px"></div>
+    <div class="row"><label for="a-title">タイトル *</label><input type="text" id="a-title" required style="flex:1 1 240px"></div>
+    <div class="row"><label for="a-channel">チャンネル</label><input type="text" id="a-channel" style="flex:1 1 160px"></div>
+    <div class="row">
+      <label for="a-genre">料理の種類 *</label><input type="text" id="a-genre" list="dl-genre" required placeholder="例: 焼鳥 / 新しい種類も可" style="flex:1 1 140px"><datalist id="dl-genre"></datalist>
+      <label for="a-dish">料理種別</label><input type="text" id="a-dish" list="dl-dish" value="メイン" style="width:90px"><datalist id="dl-dish"></datalist>
+      <label for="a-gear">器具</label><input type="text" id="a-gear" list="dl-gear" placeholder="例: スキレット" style="width:120px"><datalist id="dl-gear"></datalist>
+    </div>
+    <div class="row">
+      <label for="a-sv">人数</label><input type="number" id="a-sv" min="1" max="20" value="2">
+      <label for="a-diff">難易度</label><select id="a-diff"><option>簡単</option><option selected>普通</option><option>本格</option></select>
+    </div>
+    <div>
+      <div class="row"><label for="a-ing">素材</label><input type="text" id="a-ing" list="dl-ing" placeholder="例: 鶏肉(もも) / 新しい素材も可" style="flex:1 1 160px"><datalist id="dl-ing"></datalist><button type="button" class="chip" id="a-ing-add">＋ 追加</button></div>
+      <div id="a-newing" class="row" hidden style="margin-top:6px;background:var(--ember-soft);padding:8px;border-radius:6px">
+        <span class="count" id="a-newing-name"></span>
+        <label for="a-unit">単位</label><input type="text" id="a-unit" value="100g" style="width:70px">
+        <label for="a-price">単価(円)</label><input type="number" id="a-price" min="0" value="200" style="width:80px">
+        <label for="a-portion">1人前の量</label><input type="number" id="a-portion" min="0" step="0.1" value="1" style="width:70px">
+        <button type="button" class="chip" id="a-newing-ok">登録</button>
+      </div>
+      <div class="chips" id="a-ings" style="margin-top:8px"></div>
+    </div>
+    <div class="row"><label for="a-rname">レシピ名</label><input type="text" id="a-rname" style="flex:1 1 200px"></div>
+    <div class="row" style="align-items:flex-start">
+      <label for="a-rings">材料（1行1項目）</label><textarea id="a-rings" rows="4" style="flex:1 1 220px;font:inherit;border:1px solid var(--line);border-radius:6px;padding:6px;background:var(--surface);color:var(--fg)"></textarea>
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <label for="a-rsteps">作り方（1行1手順）</label><textarea id="a-rsteps" rows="5" style="flex:1 1 220px;font:inherit;border:1px solid var(--line);border-radius:6px;padding:6px;background:var(--surface);color:var(--fg)"></textarea>
+    </div>
+    <div class="row"><label for="a-tip">コツ</label><input type="text" id="a-tip" style="flex:1 1 240px"></div>
+    <div class="row"><button class="btn" type="submit">保存する</button><span class="count" id="a-msg"></span></div>
+  </form>
+  <div class="course-form">
+    <h2>追加したデータの書き出し・取り込み</h2>
+    <div class="row"><button type="button" class="chip" id="exp">JSONをコピー（書き出し）</button><button type="button" class="chip" id="imp-btn">貼り付けて取り込み</button><span class="count" id="io-msg"></span></div>
+    <textarea id="imp" rows="3" hidden style="width:100%;font:12px var(--mono);border:1px solid var(--line);border-radius:6px;padding:6px;background:var(--surface);color:var(--fg)"></textarea>
+  </div>
+</section>
+
 <footer>
-  サムネイルをタップするとその場で再生。「レシピを見る」で材料と作り方をテキスト表示（料理名・素材・器具から書き起こした標準的な作り方で、動画と異なる場合があります）。<br>
+  「追加」タブから自分の動画・レシピを登録できます（未登録の素材・料理の種類・器具は入力した名前で新規登録。保存先は端末のブラウザ）。サムネイルをタップするとその場で再生。「レシピを見る」で材料と作り方をテキスト表示（料理名・素材・器具から書き起こした標準的な作り方で、動画と異なる場合があります）。<br>
   収録154本。料理の種類ごとにYouTube検索し、再生回数の多い順に選んでいます（再生回数は2026年10月16日時点）。各動画の素材・人数・器具はタイトルからの推定で、実際の内容と異なる場合があります。コストは「素材の1人前目安量 × スーパー相場 ＋ 調味料150円」の概算。買い出し単位（肉300gパック、玉ねぎ1個など）で丸めた金額は、コース案の買い出し表に示しています。相場は札幌市 生活関連商品小売価格調査（2026年9月）を基準に全国値へ補正、未収載の約40品目は推定値。
 </footer>
 </div>
@@ -201,7 +248,11 @@ footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid va
 window.addEventListener('error',e=>{const g=document.getElementById('grid');if(g&&!g.children.length)g.innerHTML='<p class="empty">読み込みに失敗しました: '+(e.message||e.type)+' ('+(e.lineno||'')+')</p>'});
 try{
 const DATA=JSON.parse(document.getElementById('data').textContent);
-const V=DATA.videos, ITEMS=DATA.items;
+const loadUser=()=>{try{const u=JSON.parse(localStorage.getItem('camp_user')||'null');if(u&&Array.isArray(u.videos))return {videos:u.videos,items:u.items||{}}}catch(e){}return {videos:[],items:{}}};
+const USER=loadUser();
+const saveUser=()=>{try{localStorage.setItem('camp_user',JSON.stringify(USER))}catch(e){}};
+const ITEMS=Object.assign({},DATA.items,USER.items);
+const V=DATA.videos.concat(USER.videos);
 const PACK={ // 購入単位（unit何個分で1パックか）
  '牛肉(切り落とし)':3,'牛肉(ステーキ用)':2,'牛肉(塊・ブロック)':5,'豚肉(バラ)':3,'豚肉(ロース)':3,'豚肉(スペアリブ)':5,'豚肉(ブロック)':5,
  '鶏肉(もも)':3,'鶏肉(むね)':3,'鶏肉(手羽)':5,'ラム肉':3,'ひき肉(合挽)':3,'エビ(冷凍むき・有頭)':3,'ホタテ':2,'イカ':3,'牡蠣':2,'あさり':3,
@@ -212,38 +263,42 @@ const yen=n=>'¥'+Math.round(n).toLocaleString('ja-JP');
 const $=s=>document.querySelector(s);
 const ROLE={'メイン':'main','主食':'staple','サイド':'side','スープ':'side','デザート':'sweet','おつまみ':'sweet'};
 
-// ---- stats
-$('#st-n').textContent=V.length;
-const allIng=[...new Set(V.flatMap(v=>v.ingredients.map(i=>i.item)))];
-$('#st-i').textContent=allIng.length;
-const costs=V.map(v=>v.cost_pp).sort((a,b)=>a-b);
-$('#st-c').textContent=yen(costs[Math.floor(costs.length/2)]);
-
-// ---- option fill
-function fill(sel,vals){vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o)})}
-const DISH=[...new Set(V.map(v=>v.dish_type))], GEAR=[...new Set(V.map(v=>v.gear))], DIFF=['簡単','普通','本格'];
-fill($('#dish'),DISH);fill($('#gear'),GEAR);fill($('#diff'),DIFF);fill($('#c-gear'),GEAR);fill($('#c-diff'),DIFF);
-
-// ingredient chips sorted by frequency
-const freq={};V.forEach(v=>v.ingredients.forEach(i=>freq[i.item]=(freq[i.item]||0)+1));
-const ingSorted=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]);
+// ---- stats / options / chips (rebuildable)
+function fill(sel,vals){sel.innerHTML=sel.tagName==='SELECT'?'<option value="">すべて</option>':'';vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o)})}
 const sel=new Set(), csel=new Set(), gsel=new Set();
-const gfreq={};V.forEach(v=>gfreq[v.genre]=(gfreq[v.genre]||0)+1);
-const genres=Object.keys(gfreq).sort((a,b)=>gfreq[b]-gfreq[a]);
+let freq={},ingSorted=[],gfreq={},genres=[],DISH=[],GEAR=[];const DIFF=['簡単','普通','本格'];
 function chips(container,set,onchange){
   container.innerHTML='';
   const LIMIT=10; let open=false;
-  ingSorted.forEach((name,k)=>{const b=document.createElement('button');b.type='button';b.className='chip';b.setAttribute('aria-pressed','false');
-    b.innerHTML=name+'<small>'+freq[name]+'</small>'; if(k>=LIMIT)b.hidden=true;
+  ingSorted.forEach((name,k)=>{const b=document.createElement('button');b.type='button';b.className='chip';b.setAttribute('aria-pressed',set.has(name));
+    b.innerHTML=name+'<small>'+freq[name]+'</small>'; if(k>=LIMIT&&!set.has(name))b.hidden=true;
     b.onclick=()=>{set.has(name)?set.delete(name):set.add(name);b.setAttribute('aria-pressed',set.has(name));onchange()};container.appendChild(b)});
   const more=document.createElement('button');more.type='button';more.className='chip more';
   const label=()=>more.textContent=open?'素材を減らす':'素材をすべて表示（'+(ingSorted.length-LIMIT)+'）';label();
   more.onclick=()=>{open=!open;[...container.querySelectorAll('.chip:not(.more)')].forEach((b,k)=>{if(k>=LIMIT)b.hidden=!open&&!set.has(b.firstChild.textContent)});label()};
   container.appendChild(more);
 }
-chips($('#ingchips'),sel,render);chips($('#c-ings'),csel,()=>{});
-(function(){const c=$('#genrechips');genres.forEach(g=>{const b=document.createElement('button');b.type='button';b.className='chip';b.setAttribute('aria-pressed','false');b.innerHTML=g+'<small>'+gfreq[g]+'</small>';
-  b.onclick=()=>{gsel.has(g)?gsel.delete(g):gsel.add(g);b.setAttribute('aria-pressed',gsel.has(g));render()};c.appendChild(b)})})();
+function rebuild(){
+  $('#st-n').textContent=V.length;
+  $('#st-i').textContent=new Set(V.flatMap(v=>v.ingredients.map(i=>i.item))).size;
+  const costs=V.map(v=>v.cost_pp).sort((a,b)=>a-b);
+  $('#st-c').textContent=yen(costs[Math.floor(costs.length/2)]||0);
+  DISH=[...new Set(V.map(v=>v.dish_type))]; GEAR=[...new Set(V.map(v=>v.gear))];
+  const keep=id=>$(id).value;
+  const d=keep('#dish'),g=keep('#gear'),df=keep('#diff');
+  fill($('#dish'),DISH);fill($('#gear'),GEAR);fill($('#diff'),DIFF);$('#dish').value=d;$('#gear').value=g;$('#diff').value=df;
+  const cg=keep('#c-gear'),cd=keep('#c-diff');fill($('#c-gear'),GEAR);fill($('#c-diff'),DIFF);$('#c-gear').value=cg;$('#c-diff').value=cd;
+  $('#c-gear').querySelector('option').textContent='限定しない';$('#c-diff').querySelector('option').textContent='問わない';
+  freq={};V.forEach(v=>v.ingredients.forEach(i=>freq[i.item]=(freq[i.item]||0)+1));
+  ingSorted=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]);
+  gfreq={};V.forEach(v=>gfreq[v.genre]=(gfreq[v.genre]||0)+1);
+  genres=Object.keys(gfreq).sort((a,b)=>gfreq[b]-gfreq[a]);
+  chips($('#ingchips'),sel,render);chips($('#c-ings'),csel,()=>{});
+  const c=$('#genrechips');c.innerHTML='';genres.forEach(g=>{const b=document.createElement('button');b.type='button';b.className='chip';b.setAttribute('aria-pressed',gsel.has(g));b.innerHTML=g+'<small>'+gfreq[g]+'</small>';
+    b.onclick=()=>{gsel.has(g)?gsel.delete(g):gsel.add(g);b.setAttribute('aria-pressed',gsel.has(g));render()};c.appendChild(b)});
+  fill($('#dl-genre'),genres);fill($('#dl-dish'),DISH);fill($('#dl-gear'),GEAR);fill($('#dl-ing'),Object.keys(ITEMS));
+}
+rebuild();
 
 // ---- list render
 function render(){
@@ -259,18 +314,18 @@ function render(){
   $('#empty').hidden=list.length>0;
   const PAGE=24; let shown=Math.min(PAGE,list.length);
   const card=v=>`<article class="card">
-    <a class="thumb" href="${v.url}" data-vid="${v.vid}" aria-label="${esc(v.title)} を再生"><img loading="lazy" src="https://i.ytimg.com/vi/${v.vid}/mqdefault.jpg" alt=""><span class="play">▶</span><span class="len">${v.length}</span></a>
+    ${v.vid?`<a class="thumb" href="${v.url}" data-vid="${v.vid}" aria-label="${esc(v.title)} を再生"><img loading="lazy" src="https://i.ytimg.com/vi/${v.vid}/mqdefault.jpg" alt=""><span class="play">▶</span><span class="len">${v.length||''}</span></a>`:''}
     <h3><a href="${v.url}" target="_blank" rel="noopener">${esc(v.title)}</a></h3>
-    <p class="ings" style="margin:0"><i>${esc(v.channel)}</i> ・ ${fmtViews(v.views)}視聴 ・ ${v.length}</p>
-    <div class="meta"><span class="pill cat">${v.genre}</span><span class="pill">${v.dish_type}</span><span class="pill">${v.gear}</span><span class="pill">${v.difficulty}</span></div>
+    <p class="ings" style="margin:0"><i>${esc(v.channel||'')}</i>${v.views?` ・ ${fmtViews(v.views)}視聴`:''}${v.length?` ・ ${v.length}`:''}</p>
+    <div class="meta"><span class="pill cat">${v.genre}</span><span class="pill">${v.dish_type}</span><span class="pill">${v.gear}</span><span class="pill">${v.difficulty}</span>${v.user?`<span class="pill user">自分で追加</span><button type="button" class="del" data-del="${v.id}">削除</button>`:''}</div>
     <p class="ings" style="margin:0">${v.ingredients.map(i=>`<i class="${sel.has(i.item)?'hit':''}">${i.item}</i>`).join('・')||'素材不明'}</p>
     <div class="cost"><span><b>${yen(v.cost_pp)}</b> /人</span><span>${people}人で ${yen(v.cost_pp*people)}</span><span class="est">概算</span></div>
     <details class="recipe"><summary>レシピを見る</summary>
       <h4>${esc(v.recipe.name)}</h4>
-      <p class="rn">材料（${v.servings}人分）</p><ul>${v.recipe.ings.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
-      <p class="rn">作り方</p><ol>${v.recipe.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
+      ${v.recipe.ings.length?`<p class="rn">材料（${v.servings}人分）</p><ul>${v.recipe.ings.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}
+      ${v.recipe.steps.length?`<p class="rn">作り方</p><ol>${v.recipe.steps.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>`:'<p class="warn">レシピ本文は未入力です。</p>'}
       ${v.recipe.tip?`<p class="tip">${esc(v.recipe.tip)}</p>`:''}
-      <p class="warn">料理名・素材・器具から書き起こした標準的な作り方です。動画の分量・手順と異なる場合があります。</p>
+      ${v.user?'':'<p class="warn">料理名・素材・器具から書き起こした標準的な作り方です。動画の分量・手順と異なる場合があります。</p>'}
     </details>
     <a class="watch" href="${v.url}" target="_blank" rel="noopener">YouTubeで見る ↗</a>
   </article>`;
@@ -282,11 +337,12 @@ function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;
 ['#q','#people','#dish','#gear','#diff','#maxcost'].forEach(s=>$(s).addEventListener('input',render));
 $('#sort').addEventListener('input',e=>{SORT=e.target.value;render()});
 render();
-$('#grid').addEventListener('click',e=>{const a=e.target.closest('.thumb');if(!a)return;e.preventDefault();
+$('#grid').addEventListener('click',e=>{const dl=e.target.closest('[data-del]');if(dl){const id=+dl.dataset.del;const k=USER.videos.findIndex(x=>x.id===id);if(k>=0){USER.videos.splice(k,1);saveUser();const j=V.findIndex(x=>x.id===id);if(j>=0)V.splice(j,1);rebuild();render();}return;}
+  const a=e.target.closest('.thumb');if(!a)return;e.preventDefault();
   a.innerHTML=`<iframe src="https://www.youtube-nocookie.com/embed/${a.dataset.vid}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen title="YouTube player"></iframe>`;a.removeAttribute('href')});
 
 // ---- tabs
-const tabs=[['#tab-list','#p-list'],['#tab-course','#p-course']];
+const tabs=[['#tab-list','#p-list'],['#tab-course','#p-course'],['#tab-add','#p-add']];
 tabs.forEach(([t,p])=>$(t).onclick=()=>{tabs.forEach(([t2,p2])=>{$(t2).setAttribute('aria-selected',t2===t);$(p2).hidden=p2!==p})});
 
 // ---- course builder
@@ -348,6 +404,43 @@ function fmt(n){return Number.isInteger(n)?n:n.toFixed(1).replace(/\.0$/,'')}
 // run a default course on load so the tab is not empty
 let courseRan=false;
 $('#tab-course').addEventListener('click',()=>{if(courseRan)return;courseRan=true;setTimeout(()=>{silent=true;$('#cform').dispatchEvent(new Event('submit',{cancelable:true}));silent=false;},50)});
+
+// ---- 追加フォーム
+const aIngs=[]; let pendingNew=null;
+function drawAIngs(){$('#a-ings').innerHTML=aIngs.map((n,k)=>`<button type="button" class="chip" aria-pressed="true" data-k="${k}">${esc(n)} ×</button>`).join('');
+  $('#a-ings').querySelectorAll('button').forEach(b=>b.onclick=()=>{aIngs.splice(+b.dataset.k,1);drawAIngs()})}
+$('#a-ing-add').onclick=()=>{const n=$('#a-ing').value.trim();if(!n)return;
+  if(ITEMS[n]){if(!aIngs.includes(n))aIngs.push(n);$('#a-ing').value='';drawAIngs();return;}
+  pendingNew=n;$('#a-newing-name').textContent='「'+n+'」は未登録です。単価を入れて登録:';$('#a-newing').hidden=false;};
+$('#a-ing').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#a-ing-add').click()}});
+$('#a-newing-ok').onclick=()=>{if(!pendingNew)return;const unit=$('#a-unit').value.trim()||'1個',price=+$('#a-price').value||0,portion=+$('#a-portion').value||1;
+  ITEMS[pendingNew]={unit,price,cat:'追加',est:true,portion};USER.items[pendingNew]={unit,price,cat:'追加',est:true,portion};saveUser();
+  if(!aIngs.includes(pendingNew))aIngs.push(pendingNew);pendingNew=null;$('#a-newing').hidden=true;$('#a-ing').value='';fill($('#dl-ing'),Object.keys(ITEMS));drawAIngs();};
+const lines=s=>s.split('\n').map(x=>x.trim()).filter(Boolean);
+$('#aform').onsubmit=e=>{e.preventDefault();
+  const title=$('#a-title').value.trim(),genre=$('#a-genre').value.trim();
+  if(!title||!genre){$('#a-msg').textContent='タイトルと料理の種類は必須です';return;}
+  const url=$('#a-url').value.trim();const m=url.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/);const vid=m?m[1]:'';
+  const sv=+$('#a-sv').value||2;
+  const ingredients=aIngs.map(n=>{const i=ITEMS[n];const portion=i.portion!=null?i.portion:(i.typical_portion_per_person||1);return {tag:n,item:n,unit:i.unit,price:i.price,portion,cat:i.cat||'追加',est:!!i.est}});
+  const cost_pp=Math.round((ingredients.reduce((s,i)=>s+i.price*i.portion,0)+150)/10)*10;
+  const id=1000+Date.now()%100000000;
+  const v={id,title,url:vid?'https://www.youtube.com/watch?v='+vid:url,vid,channel:$('#a-channel').value.trim(),views:0,length:'',ingredients,tags:aIngs.slice(),
+    dish_type:$('#a-dish').value.trim()||'メイン',category:genre,genre,gear:$('#a-gear').value.trim()||'その他',servings:sv,difficulty:$('#a-diff').value,summary:'',cost_pp,user:true,
+    recipe:{name:$('#a-rname').value.trim()||title,ings:lines($('#a-rings').value),steps:lines($('#a-rsteps').value),tip:$('#a-tip').value.trim()}};
+  USER.videos.push(v);saveUser();V.push(v);rebuild();
+  $('#aform').reset();$('#a-sv').value=2;$('#a-dish').value='メイン';aIngs.length=0;drawAIngs();
+  $('#a-msg').textContent='保存しました（'+genre+'／素材'+ingredients.length+'品）';
+  $('#q').value=title;render();
+};
+$('#exp').onclick=()=>{const t=JSON.stringify(USER,null,1);const done=()=>$('#io-msg').textContent='コピーしました（'+USER.videos.length+'本）';
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done).catch(()=>{$('#imp').hidden=false;$('#imp').value=t;$('#imp').select();$('#io-msg').textContent='下の欄から手動でコピーしてください'});
+  else{$('#imp').hidden=false;$('#imp').value=t;$('#imp').select();}};
+$('#imp-btn').onclick=()=>{const ta=$('#imp');if(ta.hidden){ta.hidden=false;ta.value='';ta.focus();$('#io-msg').textContent='JSONを貼り付けてもう一度押してください';return;}
+  try{const u=JSON.parse(ta.value);if(!u||!Array.isArray(u.videos))throw new Error('形式が違います');
+    Object.assign(USER.items,u.items||{});Object.assign(ITEMS,u.items||{});
+    let n=0;u.videos.forEach(x=>{if(!USER.videos.some(y=>y.id===x.id)){x.user=true;USER.videos.push(x);V.push(x);n++}});saveUser();rebuild();render();ta.hidden=true;$('#io-msg').textContent=n+'本を取り込みました';
+  }catch(err){$('#io-msg').textContent='取り込めませんでした: '+err.message}};
 }catch(err){document.getElementById('grid').innerHTML='<p class="empty">読み込みに失敗しました: '+err.message+'</p>';}
 </script>
 </body>
