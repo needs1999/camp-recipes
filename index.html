@@ -162,6 +162,7 @@ footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid va
     <div class="chips" id="ingchips" aria-label="素材で絞り込み"></div>
   </div>
   <div class="grid" id="grid"></div>
+  <button class="btn" id="more" type="button" style="justify-self:center;margin:8px auto 0;display:block" hidden>さらに表示</button>
   <p class="empty" id="empty" hidden>条件に合う動画がありません。素材の選択をいくつか外してみてください。</p>
 </section>
 
@@ -256,7 +257,8 @@ function render(){
     .sort((a,b)=>b.hits-a.hits||(SORT==='cost'?a.v.cost_pp-b.v.cost_pp:b.v.views-a.v.views)).map(x=>x.v);
   $('#n-shown').textContent=list.length+' / '+V.length+' 本';
   $('#empty').hidden=list.length>0;
-  $('#grid').innerHTML=list.map(v=>`<article class="card">
+  const PAGE=24; let shown=Math.min(PAGE,list.length);
+  const card=v=>`<article class="card">
     <a class="thumb" href="${v.url}" data-vid="${v.vid}" aria-label="${esc(v.title)} を再生"><img loading="lazy" src="https://i.ytimg.com/vi/${v.vid}/mqdefault.jpg" alt=""><span class="play">▶</span><span class="len">${v.length}</span></a>
     <h3><a href="${v.url}" target="_blank" rel="noopener">${esc(v.title)}</a></h3>
     <p class="ings" style="margin:0"><i>${esc(v.channel)}</i> ・ ${fmtViews(v.views)}視聴 ・ ${v.length}</p>
@@ -271,7 +273,10 @@ function render(){
       <p class="warn">料理名・素材・器具から書き起こした標準的な作り方です。動画の分量・手順と異なる場合があります。</p>
     </details>
     <a class="watch" href="${v.url}" target="_blank" rel="noopener">YouTubeで見る ↗</a>
-  </article>`).join('');
+  </article>`;
+  const g=$('#grid');g.innerHTML=list.slice(0,shown).map(card).join('');
+  const more=$('#more');more.hidden=shown>=list.length;more.textContent='さらに表示（残り'+(list.length-shown)+'本）';
+  more.onclick=()=>{const next=list.slice(shown,shown+PAGE);g.insertAdjacentHTML('beforeend',next.map(card).join(''));shown+=next.length;more.hidden=shown>=list.length;more.textContent='さらに表示（残り'+(list.length-shown)+'本）'};
 }
 function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 ['#q','#people','#dish','#gear','#diff','#maxcost'].forEach(s=>$(s).addEventListener('input',render));
@@ -300,8 +305,10 @@ $('#cform').onsubmit=e=>{
   const people=+$('#c-people').value||1, budget=+$('#c-budget').value||1e9, g=$('#c-gear').value, df=$('#c-diff').value;
   const ok=v=>(!g||v.gear===g)&&(!df||v.difficulty===df)&&v.ingredients.length>0;
   const by=r=>V.filter(v=>ok(v)&&ROLE[v.dish_type]===r);
-  const M=by('main'),S=by('staple'),Si=by('side'),D=by('sweet');
   const want=[...csel];
+  // 候補は各役割の上位（指定素材を含むものを優先、次に再生回数）に絞って計算量を抑える
+  const pool=r=>by(r).sort((a,b)=>{const ha=a.ingredients.filter(i=>csel.has(i.item)).length,hb=b.ingredients.filter(i=>csel.has(i.item)).length;return hb-ha||b.views-a.views}).slice(0,14);
+  const M=pool('main'),S=pool('staple'),Si=pool('side'),D=pool('sweet');
   const out=[];
   for(const m of M)for(const s of S)for(const si of Si)for(const d of D){
     const dishes=[m,s,si,d]; if(new Set(dishes.map(x=>x.id)).size<4)continue;
@@ -310,7 +317,6 @@ $('#cform').onsubmit=e=>{
     const items=new Set(dishes.flatMap(x=>x.ingredients.map(i=>i.item)));
     const hit=want.filter(w=>items.has(w)).length;
     const miss=want.length-hit;
-    // score: waste cost dominates; sharing & wanted-ingredient hits reward
     const score=sh.waste - sh.shared*120 + miss*600 - hit*300;
     out.push({dishes,sh,score,hit});
   }
@@ -340,7 +346,8 @@ $('#cform').onsubmit=e=>{
 };
 function fmt(n){return Number.isInteger(n)?n:n.toFixed(1).replace(/\.0$/,'')}
 // run a default course on load so the tab is not empty
-silent=true;$('#cform').dispatchEvent(new Event('submit',{cancelable:true}));silent=false;
+let courseRan=false;
+$('#tab-course').addEventListener('click',()=>{if(courseRan)return;courseRan=true;setTimeout(()=>{silent=true;$('#cform').dispatchEvent(new Event('submit',{cancelable:true}));silent=false;},50)});
 }catch(err){document.getElementById('grid').innerHTML='<p class="empty">読み込みに失敗しました: '+err.message+'</p>';}
 </script>
 </body>
